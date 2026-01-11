@@ -1,57 +1,157 @@
-<div align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=30&pause=1000&color=3B82F6&center=true&vCenter=true&width=600&lines=LIVE-SYNC+CLASSROOM;Real-Time+Collaboration;Decentralized+P2P+Sync;Powered+by+Gun.js" alt="Typing SVG" />
-  
-  <p align="center">
-    <b>🔴 Instant Updates • ⚡ Zero Latency • 🔗 No Backend Required</b>
-  </p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live-Sync Classroom</title>
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <style>
+        body {
+            background-color: #111827;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
 
-  <p align="center">
-    <img src="https://img.shields.io/badge/Sync-Real_Time-red?style=for-the-badge&logo=youtube&logoColor=white" />
-    <img src="https://img.shields.io/badge/Database-Decentralized-blueviolet?style=for-the-badge&logo=box&logoColor=white" />
-    <img src="https://img.shields.io/badge/Peers-Connected-success?style=for-the-badge&logo=server&logoColor=white" />
-  </p>
-  
-  <br />
+        .container { width: 100%; max-width: 600px; }
 
-  <a href="https://Kaustavoffx.github.io/live-classroom/">
-    <img src="https://img.shields.io/badge/🚀_JOIN_THE_CLASSROOM-111827?style=for-the-badge&logo=rocket&logoColor=3b82f6" height="45" />
-  </a>
-</div>
+        h1 { 
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+        p { color: #9ca3af; margin-bottom: 30px; }
 
----
+        /* Input Area */
+        .input-group {
+            background: #1f2937;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
 
-## 🧐 The Mission
-The **Live-Sync Classroom** is a proof-of-concept for the future of collaborative learning. 
+        input {
+            flex: 1;
+            background: #374151;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            color: #fff;
+            outline: none;
+        }
 
-**The Challenge:** Traditional real-time apps require complex, expensive backend servers (Node.js, Socket.io) to manage state.
-**The Solution:** This project uses **Gun.js**, a decentralized graph database, to synchronize data **peer-to-peer**. When one student posts a note, it propagates instantly to every other connected screen via a mesh network of public relays.
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
 
----
+        /* The Live List */
+        #board {
+            display: flex;
+            flex-direction: column-reverse; /* Newest at top */
+            gap: 10px;
+        }
 
-## ⚡ Key Features
+        .card {
+            background: #1f2937;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #10b981; /* Green line */
+            animation: popIn 0.3s ease-out;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-| Feature | Description |
-| :--- | :--- |
-| **🔄 Instant Sync** | Updates appear on all screens in milliseconds without refreshing. |
-| **🕸️ Decentralized** | No central database. Data lives in the browser and the mesh network. |
-| **🛡️ Privacy First** | Data is cryptographically secure and distributed. |
-| **📱 Reactive UI** | Smooth animations and a "Dark Mode" hacker aesthetic. |
+        .timestamp { font-size: 10px; color: #6b7280; }
 
----
+        @keyframes popIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
 
-## 💻 Tech Stack
+    <div class="container">
+        <h1>🔴 Live-Sync Classroom</h1>
+        <p>Type a note. It appears instantly on everyone's screen.</p>
 
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
-![Gun.js](https://img.shields.io/badge/Gun.js-Decentralized_DB-ff0055?style=flat-square&logo=redis&logoColor=white)
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Name" style="max-width: 80px;">
+            <input type="text" id="message" placeholder="What are you learning?">
+            <button onclick="postMessage()">POST</button>
+        </div>
 
----
+        <div id="board">
+            </div>
+    </div>
 
-## 📂 Project Structure
+    <script>
+        // 1. Initialize GunDB (Connects to public peers)
+        const gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+        const classroom = gun.get('global-hack-week-classroom-v1');
 
-```bash
-live-classroom/
-├── 📄 index.html      # The entire app (UI + Gun.js Logic)
-├── 📄 README.md       # Documentation
-└── 🚫 (No Backend)    # That's the magic! No server files needed.
+        // 2. Function to Send Data
+        function postMessage() {
+            const name = document.getElementById('username').value || "Anonymous";
+            const text = document.getElementById('message').value;
+
+            if(text.trim() === "") return;
+
+            const note = {
+                name: name,
+                text: text,
+                time: new Date().toLocaleTimeString()
+            };
+
+            // Save to decentralized DB
+            classroom.set(note);
+            
+            // Clear input
+            document.getElementById('message').value = "";
+        }
+
+        // 3. Listen for Real-Time Updates
+        // .map() loops over every item in the list
+        // .on() listens for changes live
+        classroom.map().on((note, id) => {
+            if(!note || !note.text) return; // Ignore bad data
+            
+            // Avoid duplicates
+            if(document.getElementById(id)) return;
+
+            const board = document.getElementById('board');
+            
+            // Create HTML Element
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'card';
+            div.innerHTML = `
+                <div>
+                    <strong>${note.name}</strong>: ${note.text}
+                </div>
+                <div class="timestamp">${note.time}</div>
+            `;
+            
+            board.appendChild(div);
+        });
+    </script>
+</body>
+</html>
